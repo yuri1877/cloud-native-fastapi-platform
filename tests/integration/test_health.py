@@ -10,7 +10,7 @@ async def test_liveness(client: AsyncClient) -> None:
 async def test_readiness(client: AsyncClient) -> None:
     response = await client.get("/health/ready")
     assert response.status_code == 200
-    assert response.json() == {"status": "ready"}
+    assert response.json() == {"status": "ready", "checks": {"database": "not_configured"}}
 
 
 async def test_openapi_available_outside_prod(client: AsyncClient) -> None:
