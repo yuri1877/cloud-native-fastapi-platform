@@ -1,0 +1,66 @@
+"""Typed, environment-driven application configuration."""
+
+from functools import lru_cache
+from typing import Literal, Self
+
+from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+Environment = Literal["dev", "test", "staging", "prod"]
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+
+ASYNC_POSTGRES_SCHEME = "postgresql+asyncpg://"
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables (and `.env` in development).
+
+    Field names map to upper-case env vars, e.g. ``app_env`` -> ``APP_ENV``.
+    Secrets have no defaults and are held as ``SecretStr`` so they never appear in
+    reprs or logs. ``hide_input_in_errors`` stops validation errors echoing raw values.
+    """
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        hide_input_in_errors=True,
+    )
+
+    # Application
+    app_name: str = "cloud-native-fastapi-platform"
+    app_version: str = "0.1.0"
+    app_env: Environment = "dev"
+    log_level: LogLevel = "INFO"
+    aws_region: str = "eu-west-2"
+
+    # Database (DATABASE_URL is a secret: it embeds credentials)
+    database_url: SecretStr | None = None
+    db_pool_size: int = Field(default=5, ge=1)
+    db_max_overflow: int = Field(default=10, ge=0)
+    db_pool_timeout: int = Field(default=30, ge=1, description="Seconds to wait for a connection")
+    db_pool_recycle: int = Field(default=1800, ge=-1, description="Seconds; -1 disables recycling")
+    db_echo: bool = False
+
+    @field_validator("database_url")
+    @classmethod
+    def _validate_database_scheme(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and not value.get_secret_value().startswith(ASYNC_POSTGRES_SCHEME):
+            raise ValueError(f"DATABASE_URL must use the {ASYNC_POSTGRES_SCHEME} scheme")
+        return value
+
+    @model_validator(mode="after")
+    def _require_database_outside_dev(self) -> Self:
+        if self.app_env in {"staging", "prod"} and self.database_url is None:
+            raise ValueError("DATABASE_URL is required in staging and prod")
+        return self
+
+    @property
+    def docs_enabled(self) -> bool:
+        """Interactive API docs are exposed in non-production environments only."""
+        return self.app_env != "prod"
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

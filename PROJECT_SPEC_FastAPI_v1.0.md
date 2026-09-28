@@ -1,4 +1,4 @@
-# PROJECT_SPEC_v1.0.md
+# PROJECT_SPEC_FastAPI_v1.0.md
 
 # Cloud-Native FastAPI Platform
 
