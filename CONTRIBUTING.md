@@ -10,6 +10,9 @@ uv run mypy app
 uv run pytest
 ```
 
+Database-backed tests run when `TEST_DATABASE_URL` is set (database name must end in `_test`);
+see `docs/architecture/database.md`.
+
 ## Rules
 
 - Keep changes small and coherent; add or update tests with every change.
