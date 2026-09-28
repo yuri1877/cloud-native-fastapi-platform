@@ -10,6 +10,9 @@ class LivenessResponse(BaseModel):
 
 
 class ReadinessResponse(BaseModel):
-    model_config = ConfigDict(json_schema_extra={"examples": [{"status": "ready"}]})
+    model_config = ConfigDict(
+        json_schema_extra={"examples": [{"status": "ready", "checks": {"database": "ok"}}]}
+    )
 
     status: Literal["ready"]
+    checks: dict[str, Literal["ok", "not_configured"]]
