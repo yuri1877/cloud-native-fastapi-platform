@@ -9,6 +9,8 @@ from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
+from app.db.database import create_engine
+from app.db.session import create_session_factory
 
 logger = logging.getLogger(__name__)
 
@@ -16,12 +18,17 @@ logger = logging.getLogger(__name__)
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
 
+    # Creating the engine does not open a connection, so it is safe to do here.
+    engine = create_engine(settings) if settings.database_url is not None else None
+
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         configure_logging(settings)
         logger.info("Application starting")
         yield
         logger.info("Application stopping")
+        if engine is not None:
+            await engine.dispose()
 
     app = FastAPI(
         title="Cloud-Native FastAPI Platform",
@@ -32,6 +39,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url="/redoc" if settings.docs_enabled else None,
         openapi_url="/openapi.json" if settings.docs_enabled else None,
     )
+    app.state.engine = engine
+    app.state.session_factory = create_session_factory(engine) if engine is not None else None
     register_exception_handlers(app)
     app.include_router(health.router)
     app.include_router(api_router)
