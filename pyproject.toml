@@ -1,0 +1,47 @@
+[project]
+name = "cloud-native-fastapi-platform"
+version = "0.1.0"
+description = "Production-grade cloud-native FastAPI platform on AWS (reference implementation)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.30,<1.0",
+    "pydantic>=2.8,<3.0",
+    "pydantic-settings>=2.4,<3.0",
+    "sqlalchemy>=2.0.35,<2.1",
+    "asyncpg>=0.29,<1.0",
+    "alembic>=1.13,<2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9.0",
+    "pytest-asyncio>=0.24,<2.0",
+    "httpx>=0.27,<1.0",
+    "ruff>=0.6",
+    "mypy>=1.11,<2.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]

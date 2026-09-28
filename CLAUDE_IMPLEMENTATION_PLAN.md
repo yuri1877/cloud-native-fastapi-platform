@@ -2,10 +2,10 @@
 
 # Claude Implementation Plan
 
-## Cloud-Native FastAPI Platform --- PROJECT_SPEC v1.0
+## Cloud-Native FastAPI Platform --- PROJECT_SPEC_FastAPI v1.0
 
 **Target implementation agent:** Claude\
-**Specification:** `PROJECT_SPEC_v1.0.md`\
+**Specification:** `PROJECT_SPEC_FastAPI_v1.0.md`\
 **Implementation style:** Incremental, test-driven, production-oriented\
 **Primary objective:** Build the repository exactly against the project
 specification while keeping the implementation understandable,
@@ -18,7 +18,7 @@ maintainable, secure and portfolio-ready.
 Implement the Cloud-Native FastAPI Platform as a complete reference
 repository.
 
-Claude must treat `PROJECT_SPEC_v1.0.md` as the source of truth.
+Claude must treat `PROJECT_SPEC_FastAPI_v1.0.md` as the source of truth.
 
 Do not prematurely implement every AWS service.
 
@@ -34,7 +34,7 @@ Every phase must leave the repository in a working state.
 
 Claude must:
 
--   Read `PROJECT_SPEC_v1.0.md` before making implementation decisions.
+-   Read `PROJECT_SPEC_FastAPI_v1.0.md` before making implementation decisions.
 -   Prefer simple, explicit designs.
 -   Avoid speculative abstractions.
 -   Keep application logic independently testable.
