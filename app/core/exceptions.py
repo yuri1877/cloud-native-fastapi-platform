@@ -38,6 +38,18 @@ class AppException(Exception):
         super().__init__(self.message)
 
 
+class NotFoundException(AppException):
+    status_code = 404
+    code = "NOT_FOUND"
+    message = "Resource was not found"
+
+
+class ConflictException(AppException):
+    status_code = 409
+    code = "CONFLICT"
+    message = "Request conflicts with the current state of the resource"
+
+
 def _error_response(request: Request, status_code: int, code: str, message: str) -> JSONResponse:
     # Real correlation IDs are attached in Phase 8; until then the field is null.
     request_id = getattr(request.state, "request_id", None)
