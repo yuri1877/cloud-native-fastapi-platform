@@ -15,6 +15,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.core.request_context import get_request_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -74,8 +76,7 @@ def _error_response(
     *,
     headers: dict[str, str] | None = None,
 ) -> JSONResponse:
-    # Real correlation IDs are attached in Phase 8; until then the field is null.
-    request_id = getattr(request.state, "request_id", None)
+    request_id = getattr(request.state, "request_id", None) or get_request_id()
     return JSONResponse(
         status_code=status_code,
         content={"error": {"code": code, "message": message, "request_id": request_id}},

@@ -9,6 +9,7 @@ from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
+from app.core.middleware import RequestIDMiddleware
 from app.db.database import create_engine
 from app.db.session import create_session_factory
 
@@ -41,6 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine) if engine is not None else None
+    app.add_middleware(RequestIDMiddleware)
     register_exception_handlers(app)
     app.include_router(health.router)
     app.include_router(api_router)

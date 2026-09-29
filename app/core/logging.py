@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.core.config import Settings
+from app.core.request_context import get_request_id, get_trace_id
 
 
 class JsonFormatter(logging.Formatter):
@@ -26,7 +27,13 @@ class JsonFormatter(logging.Formatter):
             "environment": self._environment,
             "logger": record.name,
             "message": record.getMessage(),
+            "request_id": get_request_id(),
+            "trace_id": get_trace_id(),
         }
+        for field in ("http_method", "http_route", "http_status", "duration_ms"):
+            value = getattr(record, field, None)
+            if value is not None:
+                payload[field] = value
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
         return json.dumps(payload, default=str)
