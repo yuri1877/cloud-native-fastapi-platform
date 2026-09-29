@@ -75,12 +75,15 @@ class OrderService:
         changes = data.model_dump(exclude_unset=True)
 
         new_status = changes.get("status")
-        if new_status is not None and new_status != order.status:
-            if new_status not in ALLOWED_TRANSITIONS[order.status]:
-                raise ConflictException(
-                    f"Cannot change order status from {order.status} to {new_status}",
-                    code="INVALID_STATUS_TRANSITION",
-                )
+        if (
+            new_status is not None
+            and new_status != order.status
+            and new_status not in ALLOWED_TRANSITIONS[order.status]
+        ):
+            raise ConflictException(
+                f"Cannot change order status from {order.status} to {new_status}",
+                code="INVALID_STATUS_TRANSITION",
+            )
         # Amount and currency are only editable while the order has not started processing.
         if ("total_amount" in changes or "currency" in changes) and (
             order.status != OrderStatus.PENDING

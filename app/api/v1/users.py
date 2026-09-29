@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Response
 
@@ -8,9 +9,13 @@ from app.schemas.user import UserCreate, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-_422 = {422: {"model": ErrorResponse, "description": "Validation error"}}
-_404 = {404: {"model": ErrorResponse, "description": "User not found"}}
-_409 = {409: {"model": ErrorResponse, "description": "Conflict"}}
+_422: dict[int | str, dict[str, Any]] = {
+    422: {"model": ErrorResponse, "description": "Validation error"}
+}
+_404: dict[int | str, dict[str, Any]] = {
+    404: {"model": ErrorResponse, "description": "User not found"}
+}
+_409: dict[int | str, dict[str, Any]] = {409: {"model": ErrorResponse, "description": "Conflict"}}
 
 
 @router.get(
@@ -48,9 +53,7 @@ async def get_user(user_id: uuid.UUID, service: UserServiceDep) -> UserRead:
     response_model=UserRead,
     responses={**_409, **_422},
 )
-async def create_user(
-    payload: UserCreate, service: UserServiceDep, response: Response
-) -> UserRead:
+async def create_user(payload: UserCreate, service: UserServiceDep, response: Response) -> UserRead:
     user = await service.create_user(payload)
     response.headers["Location"] = f"/api/v1/users/{user.id}"
     return UserRead.model_validate(user)
@@ -63,9 +66,7 @@ async def create_user(
     response_model=UserRead,
     responses={**_404, **_409, **_422},
 )
-async def update_user(
-    user_id: uuid.UUID, payload: UserUpdate, service: UserServiceDep
-) -> UserRead:
+async def update_user(user_id: uuid.UUID, payload: UserUpdate, service: UserServiceDep) -> UserRead:
     return UserRead.model_validate(await service.update_user(user_id, payload))
 
 

@@ -154,8 +154,6 @@ async def test_list_orders_filters(order_service: OrderService, user_service: Us
     await _order(order_service, user_id, OrderStatus.CANCELLED)
     _, total = await order_service.list_orders(limit=10, offset=0, user_id=user_id)
     assert total == 2
-    items, total = await order_service.list_orders(
-        limit=10, offset=0, status=OrderStatus.CANCELLED
-    )
+    items, total = await order_service.list_orders(limit=10, offset=0, status=OrderStatus.CANCELLED)
     assert total == 1
     assert items[0].status == OrderStatus.CANCELLED

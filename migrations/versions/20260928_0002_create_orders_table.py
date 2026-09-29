@@ -4,6 +4,7 @@ Revision ID: 0002
 Revises: 0001
 Create Date: 2026-09-28
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -24,10 +25,16 @@ def upgrade() -> None:
         sa.Column("total_amount", sa.BigInteger(), nullable=False),
         sa.Column("currency", sa.String(length=3), nullable=False),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
         ),
         sa.Column(
-            "updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
         ),
         sa.CheckConstraint("total_amount > 0", name=op.f("ck_orders_total_amount_positive")),
         sa.CheckConstraint(

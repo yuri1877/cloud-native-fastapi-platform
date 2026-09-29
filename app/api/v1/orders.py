@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Response
 
@@ -9,9 +10,15 @@ from app.schemas.order import OrderCreate, OrderRead, OrderUpdate
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
-_422 = {422: {"model": ErrorResponse, "description": "Validation error"}}
-_404 = {404: {"model": ErrorResponse, "description": "Order (or referenced user) not found"}}
-_409 = {409: {"model": ErrorResponse, "description": "Conflict with current order state"}}
+_422: dict[int | str, dict[str, Any]] = {
+    422: {"model": ErrorResponse, "description": "Validation error"}
+}
+_404: dict[int | str, dict[str, Any]] = {
+    404: {"model": ErrorResponse, "description": "Order (or referenced user) not found"}
+}
+_409: dict[int | str, dict[str, Any]] = {
+    409: {"model": ErrorResponse, "description": "Conflict with current order state"}
+}
 
 
 @router.get(
