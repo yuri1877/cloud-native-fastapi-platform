@@ -15,6 +15,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.core.request_context import get_request_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,19 +40,55 @@ class AppException(Exception):
         super().__init__(self.message)
 
 
-def _error_response(request: Request, status_code: int, code: str, message: str) -> JSONResponse:
-    # Real correlation IDs are attached in Phase 8; until then the field is null.
-    request_id = getattr(request.state, "request_id", None)
+class NotFoundException(AppException):
+    status_code = 404
+    code = "NOT_FOUND"
+    message = "Resource was not found"
+
+
+class ConflictException(AppException):
+    status_code = 409
+    code = "CONFLICT"
+    message = "Request conflicts with the current state of the resource"
+
+
+class AuthenticationException(AppException):
+    """The caller's identity could not be established (missing/invalid/expired credentials)."""
+
+    status_code = 401
+    code = "AUTHENTICATION_REQUIRED"
+    message = "Authentication is required"
+
+
+class AuthorizationException(AppException):
+    """The caller is known but not permitted to perform this operation."""
+
+    status_code = 403
+    code = "FORBIDDEN"
+    message = "You do not have permission to perform this action"
+
+
+def _error_response(
+    request: Request,
+    status_code: int,
+    code: str,
+    message: str,
+    *,
+    headers: dict[str, str] | None = None,
+) -> JSONResponse:
+    request_id = getattr(request.state, "request_id", None) or get_request_id()
     return JSONResponse(
         status_code=status_code,
         content={"error": {"code": code, "message": message, "request_id": request_id}},
+        headers=headers,
     )
 
 
 async def _handle_app_exception(request: Request, exc: Exception) -> JSONResponse:
     if not isinstance(exc, AppException):  # defensive; handler is only registered for AppException
         return await _handle_unexpected(request, exc)
-    return _error_response(request, exc.status_code, exc.code, exc.message)
+    headers = {"WWW-Authenticate": "Bearer"} if isinstance(exc, AuthenticationException) else None
+    return _error_response(request, exc.status_code, exc.code, exc.message, headers=headers)
 
 
 async def _handle_validation_error(request: Request, exc: Exception) -> JSONResponse:

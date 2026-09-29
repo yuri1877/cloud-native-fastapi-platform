@@ -16,6 +16,7 @@ def _assert_error_shape(body: dict[str, dict[str, object]], code: str) -> None:
     assert set(body) == {"error"}
     assert set(body["error"]) == {"code", "message", "request_id"}
     assert body["error"]["code"] == code
+    assert body["error"]["request_id"]  # populated by RequestIDMiddleware (Phase 8)
 
 
 async def test_unknown_route_uses_error_contract(client: AsyncClient) -> None:
