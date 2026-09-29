@@ -10,6 +10,9 @@ from collections.abc import AsyncIterator
 import pytest
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
+from collections.abc import AsyncIterator as _AsyncIterator
+
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from app.core.config import Settings
@@ -64,3 +67,14 @@ async def clean_engine(db_settings: Settings) -> AsyncIterator[AsyncEngine]:
     yield engine
     await _wipe()
     await engine.dispose()
+
+
+@pytest.fixture
+async def db_client(db_settings: Settings, db_engine: AsyncEngine) -> _AsyncIterator[AsyncClient]:
+    """HTTP client wired to a real, migrated-schema test database."""
+    from app.main import create_app
+
+    app = create_app(db_settings)
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
