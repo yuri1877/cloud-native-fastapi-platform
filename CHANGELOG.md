@@ -27,3 +27,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   every response (success and error), and includes it (plus a placeholder `trace_id`) in every
   structured log line. Inbound IDs are validated against an allowlist and never trusted as a
   security identity.
+- Fix (Phase 9 follow-up): `get_current_principal` was reading settings via the globally
+  cached `get_settings()` (environment-variable derived) instead of the app's own
+  `Settings` instance, so an app built from an explicit `Settings` object (as tests do)
+  could silently validate against the wrong OIDC configuration. Introduced
+  `get_app_settings()`, reading `request.app.state.settings`; `create_app()` now stores
+  the settings it was built with on `app.state`.

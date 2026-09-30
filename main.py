@@ -44,7 +44,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         redoc_url="/redoc" if settings.docs_enabled else None,
         openapi_url="/openapi.json" if settings.docs_enabled else None,
     )
-    app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine) if engine is not None else None
     app.state.token_verifier = token_verifier
