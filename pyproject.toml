@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.8,<3.0",
     "pydantic[email]>=2.8,<3.0",
     "pydantic-settings>=2.4,<3.0",
+    "pyjwt[crypto]>=2.9,<3.0",
     "sqlalchemy>=2.0.35,<2.1",
     "greenlet>=3.1,<4.0",
     "asyncpg>=0.29,<1.0",
@@ -42,6 +43,9 @@ select = ["E", "F", "I", "UP", "B", "SIM", "S"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+"**/tests/**" = ["S101"]
+"**/test_*.py" = ["S101"]
+"**/conftest.py" = ["S101"]
 
 [tool.mypy]
 python_version = "3.12"
