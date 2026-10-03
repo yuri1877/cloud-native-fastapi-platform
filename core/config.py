@@ -66,9 +66,7 @@ class Settings(BaseSettings):
     def _require_oidc_settings_together(self) -> Self:
         oidc_fields = (self.oidc_issuer, self.oidc_audience, self.oidc_jwks_url)
         if any(oidc_fields) and not all(oidc_fields):
-            raise ValueError(
-                "OIDC_ISSUER, OIDC_AUDIENCE and OIDC_JWKS_URL must be set together"
-            )
+            raise ValueError("OIDC_ISSUER, OIDC_AUDIENCE and OIDC_JWKS_URL must be set together")
         return self
 
     @model_validator(mode="after")

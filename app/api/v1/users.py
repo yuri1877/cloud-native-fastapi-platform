@@ -1,14 +1,21 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 
+from app.dependencies.authz import require_admin, require_operator, require_user
 from app.dependencies.services import UserServiceDep
 from app.schemas.common import ErrorResponse, Limit, Offset, Page
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+_401: dict[int | str, dict[str, Any]] = {
+    401: {"model": ErrorResponse, "description": "Authentication required"}
+}
+_403: dict[int | str, dict[str, Any]] = {
+    403: {"model": ErrorResponse, "description": "Insufficient role"}
+}
 _422: dict[int | str, dict[str, Any]] = {
     422: {"model": ErrorResponse, "description": "Validation error"}
 }
@@ -23,7 +30,8 @@ _409: dict[int | str, dict[str, Any]] = {409: {"model": ErrorResponse, "descript
     operation_id="list_users",
     summary="List users",
     response_model=Page[UserRead],
-    responses=_422,
+    responses={**_401, **_422},
+    dependencies=[Depends(require_user)],
 )
 async def list_users(
     service: UserServiceDep, limit: Limit = 20, offset: Offset = 0
@@ -39,7 +47,8 @@ async def list_users(
     operation_id="get_user",
     summary="Get a user",
     response_model=UserRead,
-    responses={**_404, **_422},
+    responses={**_401, **_404, **_422},
+    dependencies=[Depends(require_user)],
 )
 async def get_user(user_id: uuid.UUID, service: UserServiceDep) -> UserRead:
     return UserRead.model_validate(await service.get_user(user_id))
@@ -51,7 +60,8 @@ async def get_user(user_id: uuid.UUID, service: UserServiceDep) -> UserRead:
     summary="Create a user",
     status_code=201,
     response_model=UserRead,
-    responses={**_409, **_422},
+    responses={**_401, **_403, **_409, **_422},
+    dependencies=[Depends(require_operator)],
 )
 async def create_user(payload: UserCreate, service: UserServiceDep, response: Response) -> UserRead:
     user = await service.create_user(payload)
@@ -64,7 +74,8 @@ async def create_user(payload: UserCreate, service: UserServiceDep, response: Re
     operation_id="update_user",
     summary="Update a user (partial)",
     response_model=UserRead,
-    responses={**_404, **_409, **_422},
+    responses={**_401, **_403, **_404, **_409, **_422},
+    dependencies=[Depends(require_operator)],
 )
 async def update_user(user_id: uuid.UUID, payload: UserUpdate, service: UserServiceDep) -> UserRead:
     return UserRead.model_validate(await service.update_user(user_id, payload))
@@ -75,7 +86,8 @@ async def update_user(user_id: uuid.UUID, payload: UserUpdate, service: UserServ
     operation_id="delete_user",
     summary="Delete a user",
     status_code=204,
-    responses={**_404, **_409, **_422},
+    responses={**_401, **_403, **_404, **_409, **_422},
+    dependencies=[Depends(require_admin)],
 )
 async def delete_user(user_id: uuid.UUID, service: UserServiceDep) -> None:
     await service.delete_user(user_id)

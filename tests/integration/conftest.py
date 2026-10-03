@@ -6,7 +6,6 @@ and drop tables in it. Without it, database-backed tests are skipped.
 
 import os
 from collections.abc import AsyncIterator
-from collections.abc import AsyncIterator as _AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -17,6 +16,14 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from app.core.config import Settings
 from app.db.database import Base, create_engine
 from app.db.session import create_session_factory
+from app.dependencies.auth import get_token_verifier
+from tests.unit.auth_helpers import AUDIENCE, ISSUER, FakeTokenVerifier, make_token
+
+OIDC_KWARGS = {
+    "oidc_issuer": ISSUER,
+    "oidc_audience": AUDIENCE,
+    "oidc_jwks_url": "https://issuer.example.com/.well-known/jwks.json",
+}
 
 
 @pytest.fixture
@@ -32,7 +39,7 @@ def test_database_url() -> str:
 
 @pytest.fixture
 def db_settings(test_database_url: str) -> Settings:
-    return Settings(_env_file=None, app_env="test", database_url=test_database_url)
+    return Settings(_env_file=None, app_env="test", database_url=test_database_url, **OIDC_KWARGS)
 
 
 @pytest.fixture
@@ -69,11 +76,17 @@ async def clean_engine(db_settings: Settings) -> AsyncIterator[AsyncEngine]:
 
 
 @pytest.fixture
-async def db_client(db_settings: Settings, db_engine: AsyncEngine) -> _AsyncIterator[AsyncClient]:
-    """HTTP client wired to a real, migrated-schema test database."""
+async def db_client(db_settings: Settings, db_engine: AsyncEngine) -> AsyncIterator[AsyncClient]:
+    """HTTP client wired to a real, migrated-schema test database, pre-authenticated as an
+    admin (the highest role, so every RBAC-protected route in the CRUD test suites is
+    reachable without each test having to manage its own token). Role-specific behaviour
+    is covered separately in tests/integration/test_authorization.py."""
     from app.main import create_app
 
     app = create_app(db_settings)
+    app.dependency_overrides[get_token_verifier] = FakeTokenVerifier
+    token = make_token(subject="admin-test-user", roles=["admin"])
+    headers = {"Authorization": f"Bearer {token}"}
     transport = ASGITransport(app=app, raise_app_exceptions=False)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as client:
         yield client

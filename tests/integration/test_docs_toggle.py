@@ -12,9 +12,7 @@ OIDC_KWARGS = {
 
 
 async def test_docs_disabled_in_prod() -> None:
-    app = create_app(
-        Settings(_env_file=None, app_env="prod", database_url=DB_URL, **OIDC_KWARGS)
-    )
+    app = create_app(Settings(_env_file=None, app_env="prod", database_url=DB_URL, **OIDC_KWARGS))
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         for path in ("/docs", "/redoc", "/openapi.json"):
             assert (await client.get(path)).status_code == 404

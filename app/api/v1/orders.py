@@ -1,8 +1,9 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 
+from app.dependencies.authz import require_admin, require_operator, require_user
 from app.dependencies.services import OrderServiceDep
 from app.models.order import OrderStatus
 from app.schemas.common import ErrorResponse, Limit, Offset, Page
@@ -10,6 +11,12 @@ from app.schemas.order import OrderCreate, OrderRead, OrderUpdate
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
+_401: dict[int | str, dict[str, Any]] = {
+    401: {"model": ErrorResponse, "description": "Authentication required"}
+}
+_403: dict[int | str, dict[str, Any]] = {
+    403: {"model": ErrorResponse, "description": "Insufficient role"}
+}
 _422: dict[int | str, dict[str, Any]] = {
     422: {"model": ErrorResponse, "description": "Validation error"}
 }
@@ -26,7 +33,8 @@ _409: dict[int | str, dict[str, Any]] = {
     operation_id="list_orders",
     summary="List orders",
     response_model=Page[OrderRead],
-    responses=_422,
+    responses={**_401, **_422},
+    dependencies=[Depends(require_user)],
 )
 async def list_orders(
     service: OrderServiceDep,
@@ -48,7 +56,8 @@ async def list_orders(
     operation_id="get_order",
     summary="Get an order",
     response_model=OrderRead,
-    responses={**_404, **_422},
+    responses={**_401, **_404, **_422},
+    dependencies=[Depends(require_user)],
 )
 async def get_order(order_id: uuid.UUID, service: OrderServiceDep) -> OrderRead:
     return OrderRead.model_validate(await service.get_order(order_id))
@@ -60,7 +69,8 @@ async def get_order(order_id: uuid.UUID, service: OrderServiceDep) -> OrderRead:
     summary="Create an order",
     status_code=201,
     response_model=OrderRead,
-    responses={**_404, **_422},
+    responses={**_401, **_403, **_404, **_422},
+    dependencies=[Depends(require_operator)],
 )
 async def create_order(
     payload: OrderCreate, service: OrderServiceDep, response: Response
@@ -75,7 +85,8 @@ async def create_order(
     operation_id="update_order",
     summary="Update an order (partial)",
     response_model=OrderRead,
-    responses={**_404, **_409, **_422},
+    responses={**_401, **_403, **_404, **_409, **_422},
+    dependencies=[Depends(require_operator)],
 )
 async def update_order(
     order_id: uuid.UUID, payload: OrderUpdate, service: OrderServiceDep
@@ -88,7 +99,8 @@ async def update_order(
     operation_id="delete_order",
     summary="Delete an order",
     status_code=204,
-    responses={**_404, **_409, **_422},
+    responses={**_401, **_403, **_404, **_409, **_422},
+    dependencies=[Depends(require_admin)],
 )
 async def delete_order(order_id: uuid.UUID, service: OrderServiceDep) -> None:
     await service.delete_order(order_id)

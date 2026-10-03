@@ -1,10 +1,10 @@
 from datetime import timedelta
 
 import pytest
-from tests.unit.auth_helpers import AUDIENCE, ISSUER, FakeTokenVerifier, make_token
 
 from app.core.exceptions import AuthenticationException
 from app.core.security import Principal, build_principal, decode_token
+from tests.unit.auth_helpers import AUDIENCE, ISSUER, FakeTokenVerifier, make_token
 
 
 @pytest.fixture

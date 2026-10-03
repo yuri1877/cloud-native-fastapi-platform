@@ -61,9 +61,7 @@ async def test_amount_immutable_once_processing(db_client: AsyncClient) -> None:
     order = await _create_order(db_client, user_id)
     await db_client.patch(f"/api/v1/orders/{order['id']}", json={"status": "PROCESSING"})
 
-    response = await db_client.patch(
-        f"/api/v1/orders/{order['id']}", json={"total_amount": 1}
-    )
+    response = await db_client.patch(f"/api/v1/orders/{order['id']}", json={"total_amount": 1})
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "ORDER_NOT_MODIFIABLE"
 

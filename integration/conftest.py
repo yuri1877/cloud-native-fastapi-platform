@@ -6,13 +6,12 @@ and drop tables in it. Without it, database-backed tests are skipped.
 
 import os
 from collections.abc import AsyncIterator
-
-import pytest
-from sqlalchemy import text
-from sqlalchemy.engine import make_url
 from collections.abc import AsyncIterator as _AsyncIterator
 
+import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from app.core.config import Settings
