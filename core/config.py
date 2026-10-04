@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     oidc_jwks_url: str | None = None
     oidc_algorithms: list[str] = Field(default_factory=lambda: ["RS256"])
 
+    # Messaging (SQS). Unlike DATABASE_URL/OIDC, optional in every environment: if unset,
+    # domain events fall back to LoggingEventPublisher rather than the app failing to start
+    # (see app/main.py) - so the service is deployable before queue infrastructure exists.
+    sqs_queue_url: str | None = None
+
     @field_validator("database_url")
     @classmethod
     def _validate_database_scheme(cls, value: SecretStr | None) -> SecretStr | None:

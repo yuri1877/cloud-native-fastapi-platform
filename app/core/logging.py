@@ -30,7 +30,15 @@ class JsonFormatter(logging.Formatter):
             "request_id": get_request_id(),
             "trace_id": get_trace_id(),
         }
-        for field in ("http_method", "http_route", "http_status", "duration_ms"):
+        for field in (
+            "http_method",
+            "http_route",
+            "http_status",
+            "duration_ms",
+            "event_id",
+            "event_type",
+            "event_version",
+        ):
             value = getattr(record, field, None)
             if value is not None:
                 payload[field] = value
