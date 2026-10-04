@@ -1,3 +1,4 @@
+import logging
 import uuid
 from collections.abc import Sequence
 
@@ -5,10 +6,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictException, NotFoundException
+from app.events.base import EventPublisher
+from app.events.order_events import order_created_event
 from app.models.order import Order, OrderStatus
 from app.repositories.order_repository import OrderRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.order import OrderCreate, OrderUpdate
+
+logger = logging.getLogger(__name__)
 
 # Order lifecycle. COMPLETED and CANCELLED are terminal.
 ALLOWED_TRANSITIONS: dict[OrderStatus, frozenset[OrderStatus]] = {
@@ -28,11 +33,16 @@ class OrderService:
     """Business rules and transaction boundaries for orders."""
 
     def __init__(
-        self, session: AsyncSession, orders: OrderRepository, users: UserRepository
+        self,
+        session: AsyncSession,
+        orders: OrderRepository,
+        users: UserRepository,
+        events: EventPublisher,
     ) -> None:
         self._session = session
         self._orders = orders
         self._users = users
+        self._events = events
 
     async def list_orders(
         self,
@@ -68,6 +78,18 @@ class OrderService:
             # The user was deleted between the check and the insert (foreign key violation).
             await self._session.rollback()
             raise _user_not_found() from exc
+
+        # The order is already durably committed; a publish failure must not turn into a
+        # user-facing error for work that already succeeded. Reliable delivery (retries,
+        # dead-letter handling) arrives with the SQS adapter in Phase 12 - until then this
+        # is a best-effort notification, logged on failure rather than raised.
+        try:
+            await self._events.publish(
+                order_created_event(order_id=order.id, user_id=order.user_id)
+            )
+        except Exception:
+            logger.exception("Failed to publish OrderCreated event for order %s", order.id)
+
         return order
 
     async def update_order(self, order_id: uuid.UUID, data: OrderUpdate) -> Order:

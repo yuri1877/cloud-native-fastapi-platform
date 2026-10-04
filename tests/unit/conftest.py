@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from sqlalchemy.exc import IntegrityError
 
+from app.events.publishers import InMemoryEventPublisher
 from app.models.order import Order, OrderStatus
 from app.models.user import User
 from app.services.order_service import OrderService
@@ -132,7 +133,15 @@ def user_service(session: FakeSession, users_repo: FakeUserRepository) -> UserSe
 
 
 @pytest.fixture
+def events() -> InMemoryEventPublisher:
+    return InMemoryEventPublisher()
+
+
+@pytest.fixture
 def order_service(
-    session: FakeSession, orders_repo: FakeOrderRepository, users_repo: FakeUserRepository
+    session: FakeSession,
+    orders_repo: FakeOrderRepository,
+    users_repo: FakeUserRepository,
+    events: InMemoryEventPublisher,
 ) -> OrderService:
-    return OrderService(session, orders_repo, users_repo)  # type: ignore[arg-type]
+    return OrderService(session, orders_repo, users_repo, events)  # type: ignore[arg-type]

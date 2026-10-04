@@ -13,6 +13,7 @@ from app.core.middleware import RequestIDMiddleware
 from app.core.security import TokenVerifier, create_token_verifier
 from app.db.database import create_engine
 from app.db.session import create_session_factory
+from app.events.publishers import LoggingEventPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine) if engine is not None else None
     app.state.token_verifier = token_verifier
+    # Swapped for a real SQS/EventBridge adapter in Phases 12-13; service code depends only
+    # on the EventPublisher protocol, so that swap happens here and nowhere else.
+    app.state.event_publisher = LoggingEventPublisher()
     app.add_middleware(RequestIDMiddleware)
     register_exception_handlers(app)
     app.include_router(health.router)
