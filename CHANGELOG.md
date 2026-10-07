@@ -30,3 +30,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the settings it was built with on `app.state`.
 - Authorization (Phase 10): Implement authentication using a standard OIDC/OAuth2
   JWT-compatible approach.
+- Event Architecture (Phase 11): Introduce an event abstraction. Create a domain event 
+  model.
+- SQS Integration (Phase 12): Implement an SQS adapter.
+- EventBridge integration (Phase 13): `EventBridgeEventPublisher` (`app/events/eventbridge.py`),
+  selected when `EVENTBRIDGE_BUS_NAME` is set. `MultiEventPublisher` composes SQS and
+  EventBridge when both are configured, so `OrderService` always sees a single
+  `EventPublisher` regardless of how many sinks are active, and one sink failing never
+  stops the event reaching the others. ADR-004 documents the SQS-vs-EventBridge boundary
+  (work queue vs. event routing). Tested via `moto` (an EventBridge rule routed to a
+  target SQS queue, since EventBridge has no read-back API of its own).
