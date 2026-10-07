@@ -14,10 +14,30 @@ from app.core.security import TokenVerifier, create_token_verifier
 from app.db.database import create_engine
 from app.db.session import create_session_factory
 from app.events.base import EventPublisher
-from app.events.publishers import LoggingEventPublisher
+from app.events.eventbridge import EventBridgeEventPublisher
+from app.events.publishers import LoggingEventPublisher, MultiEventPublisher
 from app.events.sqs import SQSEventPublisher
 
 logger = logging.getLogger(__name__)
+
+
+def _build_event_publisher(settings: Settings) -> EventPublisher:
+    """SQS (work queue) and EventBridge (routing) are independent, optional sinks - see
+    ADR-004. Zero, one, or both may be configured; OrderService always sees a single
+    EventPublisher regardless of how many are active."""
+    publishers: list[EventPublisher] = []
+    if settings.sqs_queue_url:
+        publishers.append(SQSEventPublisher(settings.sqs_queue_url, settings.aws_region))
+    if settings.eventbridge_bus_name:
+        publishers.append(
+            EventBridgeEventPublisher(settings.eventbridge_bus_name, settings.aws_region)
+        )
+
+    if len(publishers) > 1:
+        return MultiEventPublisher(publishers)
+    if publishers:
+        return publishers[0]
+    return LoggingEventPublisher()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -51,17 +71,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine) if engine is not None else None
     app.state.token_verifier = token_verifier
-    # EventBridge is added in Phase 13; service code depends only on the EventPublisher
-    # protocol, so that addition happens here and nowhere else.
-    event_publisher: EventPublisher = (
-        SQSEventPublisher(settings.sqs_queue_url, settings.aws_region)
-        if settings.sqs_queue_url
-        else LoggingEventPublisher()
-    )
-    app.state.event_publisher = event_publisher
-    # Swapped for a real SQS/EventBridge adapter in Phases 12-13; service code depends only
-    # on the EventPublisher protocol, so that swap happens here and nowhere else.
-    app.state.event_publisher = LoggingEventPublisher()
+    app.state.event_publisher = _build_event_publisher(settings)
     app.add_middleware(RequestIDMiddleware)
     register_exception_handlers(app)
     app.include_router(health.router)

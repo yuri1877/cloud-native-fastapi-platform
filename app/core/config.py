@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     # domain events fall back to LoggingEventPublisher rather than the app failing to start
     # (see app/main.py) - so the service is deployable before queue infrastructure exists.
     sqs_queue_url: str | None = None
+    # EventBridge: event *routing* for other consumers/integrations, distinct from SQS's
+    # role as the worker's durable work queue (ADR-004). Also optional everywhere; an app
+    # with neither configured still runs, falling back to LoggingEventPublisher.
+    eventbridge_bus_name: str | None = None
 
     @field_validator("database_url")
     @classmethod

@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.events.base import DomainEvent
 from app.events.order_events import order_created_event
-from app.events.publishers import InMemoryEventPublisher
+from app.events.publishers import InMemoryEventPublisher, MultiEventPublisher
 
 
 def test_domain_event_has_required_fields() -> None:
@@ -40,3 +40,36 @@ async def test_in_memory_publisher_captures_events() -> None:
     event = DomainEvent(event_type="Something", data={})
     await publisher.publish(event)
     assert publisher.events == [event]
+
+
+async def test_multi_event_publisher_publishes_to_every_wrapped_publisher() -> None:
+    a, b = InMemoryEventPublisher(), InMemoryEventPublisher()
+    multi = MultiEventPublisher([a, b])
+    event = DomainEvent(event_type="Something", data={})
+
+    await multi.publish(event)
+
+    assert a.events == [event]
+    assert b.events == [event]
+
+
+async def test_multi_event_publisher_attempts_every_sink_even_if_one_fails() -> None:
+    class FailingPublisher:
+        async def publish(self, event: DomainEvent) -> None:
+            raise RuntimeError("broker unreachable")
+
+    ok = InMemoryEventPublisher()
+    multi = MultiEventPublisher([FailingPublisher(), ok])
+    event = DomainEvent(event_type="Something", data={})
+
+    with pytest.raises(ExceptionGroup) as excinfo:
+        await multi.publish(event)
+
+    assert ok.events == [event]  # still delivered, despite the other sink failing
+    assert len(excinfo.value.exceptions) == 1
+    assert isinstance(excinfo.value.exceptions[0], RuntimeError)
+
+
+async def test_multi_event_publisher_with_no_failures_raises_nothing() -> None:
+    multi = MultiEventPublisher([InMemoryEventPublisher()])
+    await multi.publish(DomainEvent(event_type="Something", data={}))  # must not raise
