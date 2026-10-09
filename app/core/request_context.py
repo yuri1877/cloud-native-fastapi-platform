@@ -5,6 +5,7 @@ import re
 import uuid
 from contextvars import ContextVar
 
+REQUEST_ID_HEADER = "X-Request-ID"
 # Conservative allowlist: alphanumerics, hyphen, underscore. Blocks header/log injection
 # (CRLF, control characters) and unbounded-length headers. UUIDs and ULIDs both match.
 _SAFE_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,128}$")

@@ -40,3 +40,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   stops the event reaching the others. ADR-004 documents the SQS-vs-EventBridge boundary
   (work queue vs. event routing). Tested via `moto` (an EventBridge rule routed to a
   target SQS queue, since EventBridge has no read-back API of its own).
+- Structured logging (Phase 14): log field names now match the plan (`method`, `route`,
+  `status_code`, `duration_ms`; previously `http_*`). `route` is the matched path template
+  rather than the raw path, with the raw path in `path` (no query string). Any `extra={...}`
+  field is now emitted (the formatter previously dropped everything outside a fixed allowlist,
+  so the worker's `order_id`/`user_id` never appeared). Secrets are redacted as a backstop (by
+  key name, and bearer tokens/JWTs/URL passwords in messages and tracebacks); `botocore`,
+  `boto3` and `urllib3` are held at WARNING+; uvicorn's duplicate access log (which includes
+  query strings) is silenced. Fix: a 500 from an unhandled exception now carries
+  `X-Request-ID` and is access-logged; before, it had neither.
