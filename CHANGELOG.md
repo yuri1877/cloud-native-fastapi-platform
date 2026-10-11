@@ -49,3 +49,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `boto3` and `urllib3` are held at WARNING+; uvicorn's duplicate access log (which includes
   query strings) is silenced. Fix: a 500 from an unhandled exception now carries
   `X-Request-ID` and is access-logged; before, it had neither.
+- Metrics (Phase 15): Prometheus metrics at `GET /metrics` - `http_requests_total`,
+  `http_request_duration_seconds`, `http_errors_total` (5xx) and
+  `database_operation_duration_seconds` (statement timing via SQLAlchemy engine events, failed statements included). One `Metrics` object and registry per app. Labels are bounded: `route` is the path template (`unmatched` for 404s), unrecognised HTTP methods collapse to `OTHER`, database `operation` is only the SQL verb. Recording is done in the existing request middleware from the same duration and route as the access log, and can never fail a request.

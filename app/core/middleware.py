@@ -1,13 +1,13 @@
-"""Request correlation and access logging middleware.
+"""Request correlation, access logging and HTTP metrics middleware.
 
 Flow: read X-Request-ID if present and safely formatted, otherwise generate one; attach it
 to request-scoped context (state + contextvar) so it reaches logs and error responses;
-return it on the response; log one structured line per request.
+return it on the response; log one structured line per request and record its metrics.
 
 Unhandled exceptions are the exception to "return it on the response": Starlette's
 ServerErrorMiddleware sits *outside* user middleware, so the 500 it produces never passes
 back through here. The header is therefore also added where error responses are built
-(`app/core/exceptions.py`), and this middleware still logs the request before re-raising.
+(`app/core/exceptions.py`), and this middleware still records the request before re-raising.
 """
 
 import logging
@@ -19,6 +19,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.core.metrics import Metrics
 from app.core.request_context import (
     REQUEST_ID_HEADER,
     generate_request_id,
@@ -47,10 +48,12 @@ def route_template(path: str, path_params: Mapping[str, Any]) -> str:
     )
 
 
-def _log_request(request: Request, status_code: int, start: float) -> None:
+def _record_request(request: Request, status_code: int, start: float) -> None:
+    """Log the request and record its metrics, both from the same duration and route."""
+    duration = time.perf_counter() - start
     # `route` is the matched path *template*, which is bounded and safe to aggregate on. FastAPI
     # puts the matched route in the ASGI scope; a request that matched nothing (404) has none
-    # and is logged as "unmatched" rather than as its arbitrary, attacker-chosen path.
+    # and is recorded as "unmatched" rather than as its arbitrary, attacker-chosen path.
     # `path` is the raw path (no query string, which can carry tokens) for debugging.
     matched = request.scope.get("route") is not None
     route = (
@@ -66,9 +69,24 @@ def _log_request(request: Request, status_code: int, start: float) -> None:
             "route": route,
             "path": request.url.path,
             "status_code": status_code,
-            "duration_ms": round((time.perf_counter() - start) * 1000, 2),
+            "duration_ms": round(duration * 1000, 2),
         },
     )
+
+    metrics: Metrics | None = getattr(request.app.state, "metrics", None)
+    if metrics is None:
+        return
+    try:
+        metrics.observe_request(
+            method=request.method,
+            route=route,
+            status_code=status_code,
+            duration_seconds=duration,
+        )
+    except Exception:
+        # Observability must never fail a request, or mask the real error of one that is
+        # already failing.
+        logger.exception("Failed to record request metrics")
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -89,9 +107,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
         except Exception:
-            _log_request(request, 500, start)
+            _record_request(request, 500, start)
             raise
 
         response.headers[REQUEST_ID_HEADER] = request_id
-        _log_request(request, response.status_code, start)
+        _record_request(request, response.status_code, start)
         return response

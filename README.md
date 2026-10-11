@@ -4,7 +4,7 @@ A production-grade, cloud-native API platform (FastAPI + AWS + Terraform + GitHu
 built as a portfolio case study for Solutions Architect / Cloud DevOps roles.
 
 > **Status:** work in progress. 
-Phases 0-14 complete (bootstrap, skeleton, configuration, database layer, user & order domains, error handling, request correlation, authentication, authorization, event architecture, SQS integration, EventBridge integration, structured logging).
+Phases 0-15 complete (bootstrap, skeleton, configuration, database layer, user & order domains, error handling, request correlation, authentication, authorization, event architecture, SQS integration, EventBridge integration, structured logging, metrics).
 > The full README (architecture, trade-offs, cost, reliability) is delivered in Phase 33.
 
 See `PROJECT_SPEC_FastAPI_v1.0.md` for requirements and `CLAUDE_IMPLEMENTATION_PLAN.md`
