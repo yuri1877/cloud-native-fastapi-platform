@@ -6,9 +6,12 @@ from typing import Any
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from app.core.config import Settings
 from app.core.logging import JsonFormatter
+from app.core.tracing import configure_tracing
 from app.main import create_app
 
 
@@ -55,3 +58,21 @@ def json_logs() -> Iterator[Callable[[], list[dict[str, Any]]]]:
         root.setLevel(previous_root_level)
         for logger, level in zip(client_loggers, previous_levels, strict=True):
             logger.setLevel(level)
+
+
+@pytest.fixture(scope="session")
+def span_exporter() -> InMemorySpanExporter:
+    """Collects every finished span. The tracer provider is process-wide and already exists
+    (importing app.main created it), so the exporter is attached to it once, not per test."""
+    exporter = InMemorySpanExporter()
+    provider = configure_tracing(Settings(_env_file=None, app_env="test"))
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    return exporter
+
+
+@pytest.fixture
+def spans(span_exporter: InMemorySpanExporter) -> Iterator[InMemorySpanExporter]:
+    """The finished spans of the current test (`spans.get_finished_spans()`)."""
+    span_exporter.clear()
+    yield span_exporter
+    span_exporter.clear()

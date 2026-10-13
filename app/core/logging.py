@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.core.config import Settings
-from app.core.request_context import get_request_id, get_trace_id
+from app.core.request_context import get_request_id, get_span_id, get_trace_id
 
 REDACTED = "[REDACTED]"
 
@@ -94,6 +94,7 @@ class JsonFormatter(logging.Formatter):
             "message": redact_text(record.getMessage()),
             "request_id": get_request_id(),
             "trace_id": get_trace_id(),
+            "span_id": get_span_id(),
         }
         # Structured fields from `extra=`. Canonical fields always win a name clash, so a
         # caller cannot spoof `service`, `request_id` etc.

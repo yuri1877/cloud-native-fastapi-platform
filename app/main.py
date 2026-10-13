@@ -13,6 +13,7 @@ from app.core.logging import configure_logging
 from app.core.metrics import Metrics, attach_database_metrics
 from app.core.middleware import RequestIDMiddleware
 from app.core.security import TokenVerifier, create_token_verifier
+from app.core.tracing import attach_database_tracing, configure_tracing
 from app.db.database import create_engine
 from app.db.session import create_session_factory
 from app.events.base import EventPublisher
@@ -45,11 +46,13 @@ def _build_event_publisher(settings: Settings) -> EventPublisher:
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
 
+    configure_tracing(settings)
     metrics = Metrics()
     # Creating the engine does not open a connection, so it is safe to do here.
     engine = create_engine(settings) if settings.database_url is not None else None
     if engine is not None:
         attach_database_metrics(engine.sync_engine, metrics)
+        attach_database_tracing(engine.sync_engine)
     token_verifier: TokenVerifier | None = (
         create_token_verifier(settings.oidc_jwks_url) if settings.oidc_jwks_url else None
     )

@@ -58,6 +58,15 @@ class Settings(BaseSettings):
     # with neither configured still runs, falling back to LoggingEventPublisher.
     eventbridge_bus_name: str | None = None
 
+    # Tracing (OpenTelemetry). Spans are always created, so trace IDs reach the logs even with
+    # no collector; setting the endpoint additionally exports them (OTLP over HTTP).
+    # `otel_exporter_otlp_endpoint` is the collector's *base* URL, e.g. http://localhost:4318.
+    otel_exporter_otlp_endpoint: str | None = None
+    tracing_sample_ratio: float = Field(default=1.0, ge=0.0, le=1.0)
+    # Whether to continue a trace from an inbound `traceparent` header. Off by default: any
+    # client could otherwise pick our trace IDs and force sampling of its own requests.
+    tracing_trust_inbound_context: bool = False
+
     @field_validator("database_url")
     @classmethod
     def _validate_database_scheme(cls, value: SecretStr | None) -> SecretStr | None:

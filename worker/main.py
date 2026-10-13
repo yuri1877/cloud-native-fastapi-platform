@@ -6,6 +6,7 @@ import signal
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.core.tracing import configure_tracing
 from worker.consumer import Worker
 from worker.idempotency import InMemoryProcessedEventTracker
 
@@ -15,6 +16,7 @@ logger = logging.getLogger("worker")
 async def main() -> None:
     settings = get_settings()
     configure_logging(settings)
+    configure_tracing(settings, service_name=f"{settings.app_name}-worker")
     if not settings.sqs_queue_url:
         raise RuntimeError("SQS_QUEUE_URL must be set to run the worker")
 
