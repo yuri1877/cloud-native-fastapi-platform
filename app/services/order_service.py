@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictException, NotFoundException
+from app.core.tracing import traced
 from app.events.base import EventPublisher
 from app.events.order_events import order_created_event
 from app.models.order import Order, OrderStatus
@@ -44,6 +45,7 @@ class OrderService:
         self._users = users
         self._events = events
 
+    @traced
     async def list_orders(
         self,
         *,
@@ -56,12 +58,14 @@ class OrderService:
             limit=limit, offset=offset, user_id=user_id, status=status
         )
 
+    @traced
     async def get_order(self, order_id: uuid.UUID) -> Order:
         order = await self._orders.get(order_id)
         if order is None:
             raise NotFoundException("Order was not found", code="ORDER_NOT_FOUND")
         return order
 
+    @traced
     async def create_order(self, data: OrderCreate) -> Order:
         if await self._users.get(data.user_id) is None:
             raise _user_not_found()
@@ -92,6 +96,7 @@ class OrderService:
 
         return order
 
+    @traced
     async def update_order(self, order_id: uuid.UUID, data: OrderUpdate) -> Order:
         order = await self.get_order(order_id)
         changes = data.model_dump(exclude_unset=True)
@@ -119,6 +124,7 @@ class OrderService:
         await self._session.commit()
         return order
 
+    @traced
     async def delete_order(self, order_id: uuid.UUID) -> None:
         order = await self.get_order(order_id)
         if order.status not in DELETABLE_STATUSES:

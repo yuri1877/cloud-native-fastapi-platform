@@ -40,3 +40,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   stops the event reaching the others. ADR-004 documents the SQS-vs-EventBridge boundary
   (work queue vs. event routing). Tested via `moto` (an EventBridge rule routed to a
   target SQS queue, since EventBridge has no read-back API of its own).
+- Structured logging (Phase 14): log field names now match the plan (`method`, `route`,
+  `status_code`, `duration_ms`; previously `http_*`). `route` is the matched path template
+  rather than the raw path, with the raw path in `path` (no query string). Any `extra={...}`
+  field is now emitted (the formatter previously dropped everything outside a fixed allowlist,
+  so the worker's `order_id`/`user_id` never appeared). Secrets are redacted as a backstop (by
+  key name, and bearer tokens/JWTs/URL passwords in messages and tracebacks); `botocore`,
+  `boto3` and `urllib3` are held at WARNING+; uvicorn's duplicate access log (which includes
+  query strings) is silenced. Fix: a 500 from an unhandled exception now carries
+  `X-Request-ID` and is access-logged; before, it had neither.
+- Metrics (Phase 15): Prometheus metrics at `GET /metrics` - `http_requests_total`,
+  `http_request_duration_seconds`, `http_errors_total` (5xx) and
+  `database_operation_duration_seconds` (statement timing via SQLAlchemy engine events, failed statements included). One `Metrics` object and registry per app. Labels are bounded: `route` is the path template (`unmatched` for 404s), unrecognised HTTP methods collapse to `OTHER`, database `operation` is only the SQL verb. Recording is done in the existing request middleware from the same duration and route as the access log, and can never fail a request.
+- Distributed tracing (Phase 16): OpenTelemetry (API, SDK, OTLP/HTTP exporter) with hand-written
+  spans for the HTTP request, each service operation (`@traced`), each database statement,
+  SQS/EventBridge publication and each worker message. W3C trace context crosses SQS in the
+  message attributes, so one trace spans API -> database -> SQS -> worker. `trace_id` and
+  `span_id` now appear on every log line, including the unhandled-exception line (a
+  request-level fallback covers it, since Starlette logs it after the span ends). Inbound
+  `traceparent` is ignored unless `TRACING_TRUST_INBOUND_CONTEXT` is set; spans never contain
+  exception messages or SQL text; health and metrics requests are not traced. ADR-006 records
+  the observability architecture. Not propagated: EventBridge consumers.

@@ -15,7 +15,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.core.request_context import get_request_id
+from app.core.request_context import REQUEST_ID_HEADER, get_request_id
 
 logger = logging.getLogger(__name__)
 
@@ -77,10 +77,16 @@ def _error_response(
     headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None) or get_request_id()
+    response_headers = dict(headers or {})
+    if request_id:
+        # Set here as well as in RequestIDMiddleware: an unhandled-exception 500 is built by
+        # ServerErrorMiddleware, outside the middleware stack, so it never passes back
+        # through RequestIDMiddleware to pick the header up.
+        response_headers[REQUEST_ID_HEADER] = request_id
     return JSONResponse(
         status_code=status_code,
         content={"error": {"code": code, "message": message, "request_id": request_id}},
-        headers=headers,
+        headers=response_headers,
     )
 
 
