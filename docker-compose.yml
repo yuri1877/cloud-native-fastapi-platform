@@ -1,0 +1,92 @@
+# Local development stack: PostgreSQL, one-off migrations, the API and, optionally, the worker.
+#
+#   cp .env.example .env      # then set UV_VERSION and POSTGRES_PASSWORD (see its comments)
+#   docker compose up --build
+#
+# Local development only; nothing here is production configuration. See
+# docs/deployment/docker.md.
+
+x-app: &app
+  image: cloud-native-fastapi-platform:dev
+  build:
+    context: .
+    args:
+      PYTHON_VERSION: ${PYTHON_VERSION:-3.14}
+      UV_VERSION: ${UV_VERSION:?Set UV_VERSION in .env to the version printed by uv --version}
+  environment: &app-environment
+    APP_ENV: dev
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    AWS_REGION: ${AWS_REGION:-eu-west-2}
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-app}
+  # Hardening: nothing in the application writes to its own filesystem.
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    ports:
+      # Loopback only, so the database is not reachable from the network. Handy for psql and for
+      # running the integration tests from the host.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, when the volume is first created: adds the app_test database.
+      - ./docker/postgres/initdb.d:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # One-off: applies Alembic migrations, then exits. The API waits for it to succeed.
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *app
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Not started by default: `docker compose --profile worker up`. It needs a reachable SQS queue
+  # and AWS credentials, which are passed through from your shell and never written to a file.
+  worker:
+    <<: *app
+    profiles: ["worker"]
+    command: ["python", "-m", "worker.main"]
+    healthcheck:
+      disable: true
+    environment:
+      <<: *app-environment
+      SQS_QUEUE_URL: ${SQS_QUEUE_URL:-}
+      AWS_ACCESS_KEY_ID:
+      AWS_SECRET_ACCESS_KEY:
+      AWS_SESSION_TOKEN:
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
