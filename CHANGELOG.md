@@ -61,3 +61,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `traceparent` is ignored unless `TRACING_TRUST_INBOUND_CONTEXT` is set; spans never contain
   exception messages or SQL text; health and metrics requests are not traced. ADR-006 records
   the observability architecture. Not propagated: EventBridge consumers.
+- Containerisation (Phase 17): multi-stage `Dockerfile` (dependencies installed with
+  `uv sync --frozen --no-dev`; slim runtime image running as numeric non-root UID 10001 with a
+  liveness `HEALTHCHECK`, exec-form `CMD`, one uvicorn process; no uv, build tools or credentials in
+  the final image) and a `docker-compose.yml` development stack (PostgreSQL 16 with a test
+  database, a one-off Alembic `migrate` service, the API, and an optional `worker` profile;
+  loopback-only ports, read-only root filesystem, dropped capabilities). Static tests guard these
+  properties. Known gap: no local identity provider, so `/api/v1/*` returns 503 under compose until
+  OIDC settings are supplied.
