@@ -24,3 +24,6 @@ crash.log
 .idea/
 .vscode/
 .DS_Store
+
+# Local compose overrides (for example OIDC settings); may hold real values.
+docker-compose.override.yml
