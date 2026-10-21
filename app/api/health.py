@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.core.exceptions import AppException
 from app.db.database import check_database
+from app.schemas.common import ErrorResponse
 from app.schemas.health import LivenessResponse, ReadinessResponse
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -26,7 +27,9 @@ async def live() -> LivenessResponse:
     operation_id="health_ready",
     summary="Readiness probe",
     response_model=ReadinessResponse,
-    responses={503: {"description": "A critical dependency is unavailable"}},
+    responses={
+        503: {"model": ErrorResponse, "description": "A critical dependency is unavailable"}
+    },
 )
 async def ready(request: Request) -> ReadinessResponse:
     """Ready to serve traffic: the database (when configured) answers a trivial query."""

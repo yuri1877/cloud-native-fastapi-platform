@@ -69,3 +69,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   loopback-only ports, read-only root filesystem, dropped capabilities). Static tests guard these
   properties. Known gap: no local identity provider, so `/api/v1/*` returns 503 under compose until
   OIDC settings are supplied.
+- Automated testing (Phase 18): contract tests (`tests/contract/`) check the generated OpenAPI
+  document (valid, an exact deliberate API surface, documented status codes, one error schema,
+  integer money, bounded pagination, bearer security, self-validating examples) and that real
+  responses conform to it (documented status, schema-valid body, `X-Request-ID`, deterministic
+  pagination). Three end-to-end journeys (`tests/e2e/`): API -> SQS -> worker under one trace ID,
+  the order lifecycle and referential integrity, and an unavailable queue not failing order
+  creation. `pytest` markers `contract` and `e2e`. The database fixtures moved to
+  `tests/conftest.py` so every layer can use them. Fix found by the contract tests:
+  `/health/ready`'s 503 now documents the standard error schema.
