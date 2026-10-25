@@ -78,3 +78,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   creation. `pytest` markers `contract` and `e2e`. The database fixtures moved to
   `tests/conftest.py` so every layer can use them. Fix found by the contract tests:
   `/health/ready`'s 503 now documents the standard error schema.
+- Quality tooling (Phase 19): `scripts/check.sh` is the single entry point for every gate, in CI's
+  order (`uv lock --check`, `ruff format --check`, `ruff check`, `mypy`, `pytest --cov`), with
+  `--no-tests` for a fast static pass. mypy now covers `worker/` as well as `app/` and takes its
+  scope from configuration. Branch coverage of `app/` and `worker/` is measured (with
+  `concurrency = greenlet` so SQLAlchemy's async code is counted), with a floor that only goes up.
+  pytest runs with `--strict-markers --strict-config`. Local pre-commit hooks (ruff format and
+  check, lock check; mypy on push) use the project's pinned tools. Guard tests keep the gates from
+  being dropped or loosened by accident.

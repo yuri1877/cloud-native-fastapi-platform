@@ -10,7 +10,7 @@ already succeeded is skipped rather than reprocessed.
 import asyncio
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import boto3
 from opentelemetry.trace import SpanKind
@@ -75,7 +75,7 @@ class Worker:
             VisibilityTimeout=self._visibility_timeout_seconds,
             MessageAttributeNames=["All"],
         )
-        return response.get("Messages", [])
+        return cast(list[dict[str, Any]], response.get("Messages", []))
 
     async def _process(self, message: dict[str, Any]) -> None:
         receipt_handle = message["ReceiptHandle"]
