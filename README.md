@@ -4,7 +4,7 @@ A production-grade, cloud-native API platform (FastAPI + AWS + Terraform + GitHu
 built as a portfolio case study for Solutions Architect / Cloud DevOps roles.
 
 > **Status:** work in progress. 
-Phases 0-19 complete (bootstrap, skeleton, configuration, database layer, user & order domains, error handling, request correlation, authentication, authorization, event architecture, SQS integration, EventBridge integration, structured logging, metrics, tracing, containerisation, automated testing, quality tooling).
+Phases 0-20 complete (bootstrap, skeleton, configuration, database layer, user & order domains, error handling, request correlation, authentication, authorization, event architecture, SQS integration, EventBridge integration, structured logging, metrics, tracing, containerisation, automated testing, quality tooling, security scanning).
 > The full README (architecture, trade-offs, cost, reliability) is delivered in Phase 33.
 
 See `PROJECT_SPEC_FastAPI_v1.0.md` for requirements and `CLAUDE_IMPLEMENTATION_PLAN.md`
@@ -38,6 +38,11 @@ curl -s http://localhost:8000/health/ready
 ```
 
 See `docs/deployment/docker.md` for the image, the compose stack and its limits (notably: no local identity provider, so `/api/v1/*` returns 503 until OIDC settings are supplied).
+
+## Security scans
+
+`scripts/security.sh` runs dependency, secret, image and misconfiguration scans (needs the
+network, plus `brew install gitleaks trivy` and Docker). See `docs/security/scanning.md`.
 
 ## Checks
 

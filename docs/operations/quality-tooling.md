@@ -59,8 +59,9 @@ All hooks are `repo: local` and call `uv run`, so they use the versions pinned i
 There are no third-party hook repositories whose revisions would also need pinning and updating.
 
 ## What is not here yet
-- Dependency vulnerability scanning, secret scanning, SAST, image and Terraform scanning
-  (Phase 20, each with a documented purpose).
+- Security scanning has its own script and document: `scripts/security.sh` and
+  `docs/security/scanning.md`. It needs the network and external tools, so it is not part of
+  `scripts/check.sh`.
 - The CI workflow that calls `scripts/check.sh` (Phase 29).
 - Type checking of tests; more ruff rule categories; complexity limits.
 

@@ -86,3 +86,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   pytest runs with `--strict-markers --strict-config`. Local pre-commit hooks (ruff format and
   check, lock check; mypy on push) use the project's pinned tools. Guard tests keep the gates from
   being dropped or loosened by accident.
+- Security scanning (Phase 20): `scripts/security.sh` runs pip-audit (locked runtime dependencies,
+  `--strict`), gitleaks (working tree and git history), and Trivy (image vulnerabilities, fixable
+  HIGH/CRITICAL; Dockerfile and later Terraform misconfiguration). A missing tool is an error, not
+  a skip. Narrow, expiring suppressions (`scripts/pip-audit-ignores.txt`, `.gitleaks.toml`) are
+  guarded by tests. SAST is ruff's bandit-derived `S` rules now, with CodeQL planned for CI
+  (Phase 29). Dependabot watches the Python dependencies. Purposes and policy:
+  `docs/security/scanning.md`.

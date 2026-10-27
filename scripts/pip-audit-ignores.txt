@@ -1,0 +1,5 @@
+# Vulnerabilities accepted for now, one ID per line (GHSA-..., PYSEC-... or CVE-...), each with a
+# reason and an expiry date. An entry with no reason, or past its expiry, fails the guard test and
+# must be removed or renewed with a fresh justification. Format:
+#
+#   GHSA-xxxx-xxxx-xxxx  # not reachable: we never call the affected parser (until 2026-12-31)
