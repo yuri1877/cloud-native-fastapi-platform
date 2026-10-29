@@ -1,0 +1,23 @@
+title = "cloud-native-fastapi-platform gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated content and tool output that is not source: hashes in the lock file, caches, the virtualenv"
+paths = [
+  '''(^|/)uv\.lock$''',
+  '''(^|/)\.venv/''',
+  '''(^|/)\.(mypy|ruff|pytest)_cache/''',
+  '''(^|/)htmlcov/''',
+  '''(^|/)\.coverage$''',
+]
+
+[[allowlists]]
+description = "Deliberately fake values used by tests and documentation. Each entry is the exact placeholder, never a pattern."
+regexes = [
+  '''eyJhbGciOiJSUzI1NiJ9\.eyJzdWIiOiJ1c2VyIn0\.c2lnbmF0dXJl''',
+  '''s3cr3t-pw''',
+  '''hunter2''',
+  '''change-me''',
+]

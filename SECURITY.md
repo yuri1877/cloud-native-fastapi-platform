@@ -13,3 +13,9 @@ Please do not open a public issue. Use GitHub's private vulnerability reporting
 - Internal error details are never returned to API consumers.
 
 Detailed security architecture will be documented in `docs/security/` as the platform is built.
+
+## Automated scanning
+
+Dependency, secret, container-image and misconfiguration scans run through
+`scripts/security.sh`, on every pull request and on a schedule. What each tool is for, how
+findings are triaged and how suppressions work: `docs/security/scanning.md`.
